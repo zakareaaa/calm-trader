@@ -133,7 +133,9 @@ def test_price_and_chart_extras(svc):
     c = svc.chart("3M")
     assert len(c["points"]) == 90 and len(c["ma25"]) == 90 and c["ma99"][0] is not None
     assert c["swings"] and c["structure"]["text"]
-    assert svc.chart("1D")["ma25"] is None
+    d = svc.chart("1D")
+    assert d["ma25"] is None and d["ma_now"]["ma25"] > 0 and d["ma_now"]["ma99"] > 0
+    assert abs(c["ma_now"]["ma25"] - c["ma25"][-1]) < 1e-9
 
 
 def test_buy_with_exit_plan_places_oco_and_journals(svc):

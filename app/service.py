@@ -8,7 +8,7 @@ from decimal import Decimal
 
 from .binance_client import BinanceClient, floor_to_step
 from .checks import Context, OrderIdea, review_order
-from .insights import describe_structure, find_swings, market_highlights, moving_average
+from .insights import describe_structure, find_swings, market_highlights, moving_average, sma
 from .journal import Journal
 from .mentor import CHECKLIST, mentor_notes
 from .portfolio import build_position
@@ -142,6 +142,11 @@ class TraderService:
             closes = [k["c"] for k in kl]
             ma25 = moving_average(closes, 25)[-limit:]
             ma99 = moving_average(closes, 99)[-limit:]
+            ma_now = {"ma25": ma25[-1], "ma99": ma99[-1]}
+        else:
+            # intraday ranges can't draw a 25-day line, so send today's values to show as flat levels
+            closes = [k["c"] for k in self.client.klines(self.symbol, "1d", 99)]
+            ma_now = {"ma25": sma(closes, 25), "ma99": sma(closes, 99)}
         kl = kl[-limit:]
         start = kl[0]["t"] if kl else 0
         trades = self.client.my_trades(self.symbol)
@@ -151,7 +156,7 @@ class TraderService:
         swings = find_swings(kl, k)
         return {"range": rng, "interval": interval,
                 "points": [{"t": p["t"], "c": p["c"], "h": p["h"], "l": p["l"]} for p in kl],
-                "ma25": ma25, "ma99": ma99,
+                "ma25": ma25, "ma99": ma99, "ma_now": ma_now,
                 "swings": swings[-8:], "structure": describe_structure(swings),
                 "markers": markers}
 

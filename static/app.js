@@ -55,7 +55,8 @@
       const st = $("structure");
       st.textContent = chartData.structure.text;
       st.className = "structure " + chartData.structure.trend;
-      $("maHint").textContent = chartData.ma25 ? "" : "Switch to 3M or 1Y to see the 25-day and 99-day averages.";
+      $("maHint").textContent = chartData.ma25 ? ""
+        : "On this view the 25-day and 99-day averages are shown as today's level (dashed lines). An arrow means the level is off the chart. Switch to 3M or 1Y to see them move.";
       drawChart();
     } catch (e) { /* banner already covers it */ }
   }
@@ -199,6 +200,11 @@
       const isStop = o.type.startsWith("STOP_LOSS");
       lines.push({ y, color: isStop ? C("--loss") : (o.side === "SELL" ? C("--gain") : "#9fb4cc"), label: isStop ? "Stop" : (o.side === "SELL" ? "Take-profit" : "Buy order") });
     });
+    // on intraday views the daily averages are flat levels, so draw them as labelled reference lines
+    if (!chartData.ma25 && chartData.ma_now) {
+      if (chartData.ma_now.ma25) lines.push({ y: chartData.ma_now.ma25, color: "#6fa8ff", label: "25-day avg" });
+      if (chartData.ma_now.ma99) lines.push({ y: chartData.ma_now.ma99, color: "#b48ee0", label: "99-day avg" });
+    }
     const span = hi - lo || hi * 0.01;
     lines.forEach((l) => { if (l.y > lo - span * 0.6 && l.y < hi + span * 0.6) { lo = Math.min(lo, l.y); hi = Math.max(hi, l.y); } });
     [chartData.ma25, chartData.ma99].forEach((arr) => (arr || []).forEach((v) => {
@@ -272,13 +278,16 @@
     // reference lines
     ctx.font = "11px " + C("--font-num");
     ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5;
+    let xTop = pad.l + 4, xBot = pad.l + 4;   // labels of lines pinned to an edge sit side by side, not on top of each other
     lines.forEach((l) => {
-      let y = Y(l.y), off = "";
-      if (y < pad.t) { y = pad.t; off = " ↑"; } else if (y > H - pad.b) { y = H - pad.b; off = " ↓"; }
+      let y = Y(l.y), off = "", x = pad.l + 4;
+      const txt = () => `${l.label} ${fmt(l.y, 0)}${off}`;
+      if (y < pad.t) { y = pad.t; off = " ↑"; x = xTop; xTop += ctx.measureText(txt()).width + 14; }
+      else if (y > H - pad.b) { y = H - pad.b; off = " ↓"; x = xBot; xBot += ctx.measureText(txt()).width + 14; }
       ctx.strokeStyle = l.color;
       ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
       ctx.fillStyle = l.color;
-      ctx.fillText(`${l.label} ${fmt(l.y, 0)}${off}`, pad.l + 4, y - 4);
+      ctx.fillText(txt(), x, y - 4);
     });
     ctx.setLineDash([]);
 
