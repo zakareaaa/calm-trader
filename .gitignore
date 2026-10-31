@@ -1,0 +1,17 @@
+# Secrets and local data
+.env
+journal.db
+data/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/

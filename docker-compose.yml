@@ -1,0 +1,17 @@
+services:
+  app:
+    build: .
+    image: calm-trader:latest
+    container_name: calm-trader
+    env_file: .env
+    environment:
+      JOURNAL_PATH: /data/journal.db
+    ports:
+      # Only your own computer can reach it (same guarantee as running uvicorn on 127.0.0.1).
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - journal-data:/data
+    restart: unless-stopped
+
+volumes:
+  journal-data:

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calm Trader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="name">Calm Trader</span>
+    <span class="badge demo" title="Orders go to Binance Demo Trading with virtual money">DEMO</span>
+  </div>
+  <div class="ticker-wrap">
+    <div class="ticker">
+      <span class="pair" id="pair">BTC/USDT</span>
+      <span class="price num" id="price">—</span>
+      <span class="chip num" id="chg">—</span>
+    </div>
+    <div class="book num" id="book" title="Best bid = highest buyer. Best ask = lowest seller. Spread = the gap between them.">
+      <span>Bid <b class="gain" id="bid">—</b></span>
+      <span>Ask <b class="loss" id="ask">—</b></span>
+      <span>Spread <b id="spread">—</b></span>
+    </div>
+  </div>
+  <div class="acct">
+    <span class="muted">Account value</span>
+    <span class="num strong" id="acctValue">—</span>
+  </div>
+</header>
+
+<div class="banner" id="banner" hidden></div>
+
+<main class="grid">
+  <section class="col-main">
+    <div class="card">
+      <div class="card-head">
+        <h2>Price</h2>
+        <div class="tabs" role="tablist" aria-label="Chart range">
+          <button role="tab" data-range="1D" aria-selected="true">1D</button>
+          <button role="tab" data-range="1W" aria-selected="false">1W</button>
+          <button role="tab" data-range="3M" aria-selected="false">3M</button>
+          <button role="tab" data-range="1Y" aria-selected="false">1Y</button>
+        </div>
+      </div>
+      <p class="structure" id="structure"></p>
+      <div class="chart-wrap">
+        <canvas id="chart" aria-label="BTC price chart with your trades and break-even line"></canvas>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+      <div class="legend">
+        <span><i class="sw line"></i>Price</span>
+        <span><i class="sw be"></i>Your break-even</span>
+        <span><i class="sw tp"></i>Take-profit order</span>
+        <span><i class="sw sl"></i>Stop-loss order</span>
+        <span><i class="tri up"></i>Your buys</span>
+        <span><i class="tri down"></i>Your sells</span>
+        <span><i class="sw ma25"></i>25-day average</span>
+        <span><i class="sw ma99"></i>99-day average</span>
+        <span><b class="hl">H</b> <b class="hl">L</b> Swing highs and lows</span>
+      </div>
+      <p class="hint" id="maHint"></p>
+    </div>
+
+    <div class="card">
+      <h2>My position</h2>
+      <div class="stats" id="position"></div>
+      <div class="target-row">
+        <label for="wantProfit">Sell everything at</label>
+        <span class="num strong" id="targetPrice">—</span>
+        <span class="muted">to make</span>
+        <input id="wantProfit" class="num small-input" inputmode="decimal" value="5">
+        <span class="muted">USDT after fees</span>
+        <button class="ghost small" id="useTarget" type="button">Use as take-profit</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Open orders</h2>
+      <div id="orders"></div>
+    </div>
+  </section>
+
+  <aside class="col-side">
+    <div class="card ticket">
+      <div class="seg big" role="tablist" aria-label="Buy or sell">
+        <button role="tab" id="tabBuy" class="buy" aria-selected="true">Buy</button>
+        <button role="tab" id="tabSell" class="sell" aria-selected="false">Sell</button>
+      </div>
+
+      <form id="ticket" novalidate>
+        <div class="seg" id="modeBuy" role="radiogroup" aria-label="How to buy">
+          <button type="button" data-kind="buy_market" aria-pressed="true">Now</button>
+          <button type="button" data-kind="buy_limit" aria-pressed="false">At a price</button>
+        </div>
+        <div class="seg" id="modeSell" role="radiogroup" aria-label="How to sell" hidden>
+          <button type="button" data-kind="exit_plan" aria-pressed="true">Exit plan</button>
+          <button type="button" data-kind="sell_limit" aria-pressed="false">At a price</button>
+          <button type="button" data-kind="sell_market" aria-pressed="false">Now</button>
+        </div>
+        <p class="hint" id="modeHint"></p>
+
+        <div class="field" id="fAmount">
+          <label for="amount">Spend (USDT)</label>
+          <input id="amount" class="num" inputmode="decimal" value="50">
+          <div class="chips"><button type="button" data-amt="25">25</button><button type="button" data-amt="50">50</button><button type="button" data-amt="100">100</button></div>
+        </div>
+        <div class="field" id="fPct" hidden>
+          <label for="pct">How much of your BTC (%)</label>
+          <input id="pct" class="num" inputmode="decimal" value="100">
+          <div class="chips"><button type="button" data-pct="25">25%</button><button type="button" data-pct="50">50%</button><button type="button" data-pct="100">100%</button></div>
+        </div>
+        <div class="field" id="fPrice" hidden>
+          <label for="limitPrice">Price (USDT per BTC)</label>
+          <input id="limitPrice" class="num" inputmode="decimal">
+        </div>
+
+        <fieldset id="fExit">
+          <legend id="exitLegend">Exit plan (optional, recommended)</legend>
+          <div class="two">
+            <div class="field">
+              <label for="tp">Take-profit price</label>
+              <input id="tp" class="num" inputmode="decimal" placeholder="e.g. 80000">
+            </div>
+            <div class="field">
+              <label for="sl">Stop-loss price</label>
+              <input id="sl" class="num" inputmode="decimal" placeholder="e.g. 75000">
+            </div>
+          </div>
+          <div class="two">
+            <div class="field">
+              <label for="tpAmt">or profit I want (USDT)</label>
+              <input id="tpAmt" class="num" inputmode="decimal" placeholder="e.g. 2">
+            </div>
+            <div class="field">
+              <label for="slAmt">or max loss (USDT)</label>
+              <input id="slAmt" class="num" inputmode="decimal" placeholder="e.g. 1">
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <label for="reason">Why this trade? (required)</label>
+          <textarea id="reason" rows="2" placeholder="e.g. Pullback to the 99-day average in an uptrend; stop below yesterday's low"></textarea>
+        </div>
+        <div class="two">
+          <div class="field">
+            <label for="feeling">How do you feel?</label>
+            <select id="feeling">
+              <option value="calm">Calm, following my plan</option>
+              <option value="excited">Excited</option>
+              <option value="fomo">Afraid of missing out</option>
+              <option value="fearful">Fearful</option>
+              <option value="revenge">Want to win back a loss</option>
+              <option value="bored">Bored</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="confidence">Confidence (1-5)</label>
+            <select id="confidence"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+          </div>
+        </div>
+        <button type="submit" class="primary" id="reviewBtn">Review order</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>What's happening</h2>
+      <ul class="notes" id="highlights"></ul>
+    </div>
+
+    <div class="card">
+      <h2>Mentor</h2>
+      <ul class="notes" id="mentor"></ul>
+      <details class="checklist">
+        <summary>Before every trade, ask yourself</summary>
+        <ol id="checklist"></ol>
+      </details>
+    </div>
+  </aside>
+
+  <section class="card wide">
+    <div class="card-head">
+      <h2>Journal</h2>
+      <div class="muted" id="jstats"></div>
+    </div>
+    <div class="table-wrap"><table id="journal">
+      <thead><tr><th>When</th><th>Action</th><th>Why</th><th>Feeling</th><th>Warnings you accepted</th><th>Looking back (fill in after)</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+</main>
+
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="sheet">
+    <h2 id="mTitle">Review your order</h2>
+    <p class="summary" id="mSummary"></p>
+    <div class="stats compact" id="mNumbers"></div>
+    <ul class="checks" id="mChecks"></ul>
+    <label class="ack" id="mAckWrap" hidden><input type="checkbox" id="mAck"> I understand the warnings and still want to place this order</label>
+    <p class="error" id="mError" role="alert"></p>
+    <div class="actions">
+      <button type="button" class="ghost" id="mCancel">Go back</button>
+      <button type="button" class="primary" id="mConfirm">Place order</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
